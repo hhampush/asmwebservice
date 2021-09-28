@@ -14,9 +14,16 @@ segment .text
 ;A system-call is done via the syscall instruction. The kernel destroys
 ;registers %rcx and %r11.
 
-;The use of $ (current address) 
+;The use of $ (current address)
 
-_start:
+;nasm -f elf64 webservice.asm; ld webservice.obj -o webservice
+
+exit:
+    mov rdi, rax
+    mov rax, 60
+    syscall
+
+loadglenn:
     mov rax, 2
     mov rdi, glennpath
     mov rsi, 0
@@ -37,11 +44,10 @@ _start:
     mov rdi, r12
     syscall
 
-    push dword 0    ;; 4 bytes padding
-    push dword 0    ;; 4 bytes padding
-    push dword 0    ;; INADDR_ANY
-    push word 0xbeef  ;; port 61374
-    push word 2    ;; AF_INET
+    ret
+
+_start:
+    call loadglenn
 
     ;fd = socket(AF_INET, SOCK_STREAM, 0);
     mov rax, 41
@@ -51,6 +57,12 @@ _start:
     syscall
     mov r9,rax ;r9 contains fd (return value)
 
+    push dword 0      ; 4 bytes padding
+    push dword 0      ; 4 bytes padding
+    push dword 0      ; INADDR_ANY
+    push word 0xd00d  ; port 3536
+    push word 2       ; AF_INET
+
     ;bind(fd, *addr, addrlen)
     mov rax, 49
     mov rdi, r9
@@ -59,6 +71,8 @@ _start:
     syscall
     cmp rax, 0
     jl exit
+
+    add rsp, 16
 
     mov rax, 50
     mov rdi, r9
@@ -74,6 +88,15 @@ loop:
     cmp rax, 0
     jl exit
     mov r12, rax ;r12 fd to client
+
+    mov rax, 57
+    syscall
+    cmp rax, 0
+    jne loop
+
+    mov rax, 3
+    mov rdi, r9
+    syscall
 
     mov rax, 0
     mov rdi, r12
@@ -94,22 +117,11 @@ loop:
     syscall
 
     mov rax, 3
-    mov rdi, r12
-    syscall
-    jmp loop
-
-    mov rax, 3
     mov rdi, r9
-    syscall
-
-exit:
-    mov rdi, rax
-    mov rax, 60
     syscall
 
 segment .rodata
     ;msg: db `HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 13\r\nConnection: Close\r\n\r\nHello, world!`
     msg: db `HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\nContent-Length: 28758\r\nConnection: Close\r\n\r\n`
-    msglen: equ $ - msg
+    msglen: equ $ - msg ; current (next) address - address of msg
     glennpath: db "glenn.gif"
-    glennlen: equ $ - glennpath
