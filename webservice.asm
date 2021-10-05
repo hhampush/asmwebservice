@@ -89,11 +89,20 @@ loop:
     mov rdi, r9
     syscall
 
+read:
     mov rax, 0 ;read(fd, buf, count)
     mov rdi, r12
     mov rsi, inputbuffer
     mov rdx, 512
     syscall
+
+;GET /home.html HTTP/1.1
+    push "GET "
+    mov rsi, rsp
+    mov rdi, inputbuffer
+    mov rcx, 4
+    repe cmpsb
+    jne read
 
     mov rax, 1 ;write(fd, buf, count)
     mov rdi, r12
@@ -107,6 +116,7 @@ loop:
     mov rdx, 28758
     syscall
 
+close:
     mov rax, 3; close(fd)
     mov rdi, r9
     syscall
