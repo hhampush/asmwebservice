@@ -1,1 +1,3 @@
 nasm -f elf64 webservice.asm; ld webservice.o -z noseparate-code -o webservice
+
+#qrencode -o out.png -8 -r webservice
